@@ -6,6 +6,7 @@ import assets
 import inspect
 import os
 import zlib
+from offset import TempOffset
 
 STREAM: BinaryIO
 BUFFER: bytearray
@@ -40,25 +41,6 @@ def size(data_type: str):
     elif data_type == INT:
         return 2
     return 4
-
-
-class TempOffset:
-    """An object, when destroyed in a with block, revert the offset to a previous location."""
-
-    def __init__(self, last: int):
-        self.last = last
-        self.revert = False
-
-    def __enter__(self):
-        self.revert = True
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.revert:
-            self.pop()
-
-    def pop(self):
-        """Revert the offset to a previous location."""
-        STREAM.seek(self.last)
 
 
 def load_source(source_file: str):

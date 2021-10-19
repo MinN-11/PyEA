@@ -1,5 +1,6 @@
 
 from PIL import Image
+from graphics import to_gba
 import numpy
 from typing import *
 import lz77
@@ -27,11 +28,6 @@ def load_item_icon(file: str):
         if v not in palette or palette[v] != c:
             return fix_item_icon(image)
     arr = numpy.array(image.getdata(), dtype='<u1').reshape((16, 16))
-    buffer = split8x8(arr).flatten()
-    buffer = (buffer[1::2] << 4) + buffer[::2]
-    return buffer.tobytes()
+    return to_gba(arr).tobytes()
 
 
-def split8x8(arr):
-    h, w = arr.shape
-    return arr.reshape(h // 8, 8, -1, 8).swapaxes(1, 2).reshape(-1, 8, 8)
