@@ -66,17 +66,3 @@ def load_portrait(file: str):
 
     palette = palette_to_bytes(palette)
     return portrait, frames, lz77.compress(minimug), palette
-
-
-im1, im2, im3, pal = load_portrait("Mug.png")
-with open("1.dmp", "wb") as file:
-    file.write(im1)
-
-with open("2.dmp", "wb") as file:
-    file.write(im2)
-
-with open("3.dmp", "wb") as file:
-    file.write(im3)
-
-with open("4.dmp", "wb") as file:
-    file.write(pal)

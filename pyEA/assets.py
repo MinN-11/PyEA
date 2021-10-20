@@ -1,7 +1,7 @@
 
 from typing import *
-from asm import asm_compiler, c2ea_compiler
-from tables import *
+from pyEA.asm import asm_compiler, c2ea_compiler
+from pyEA.tables import *
 
 ASSET_TYPES: Dict[str, Union[None, Callable[[bytes], bytes]]] = {
     ".dmp": None,

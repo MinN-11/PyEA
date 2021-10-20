@@ -1,28 +1,41 @@
 from io import BytesIO
 import struct
 from typing import *
-import globals
-import assets
 import inspect
+import math
 import os
 import zlib
-from offset import TempOffset
+from pyEA.npstream import NpStream, StreamRevert
+import pyEA.npstream
+import pyEA.assets as assets
+import numpy
+from varname import varname
 
-STREAM: BinaryIO
-BUFFER: bytearray
+BUFFER: numpy.ndarray
 LABELS: Dict[str, int] = {}
+STREAM: Union[NpStream, None] = None
+GLOBALS: Dict[str, int] = {}
 HOOKS: Dict[str, List[int]] = {}
 TABLES: Dict[str, Tuple[int, int, int, int]] = {}
+TABLE_USAGE: Dict[str, Set] = {}
+
+DATA_MAX = 0
 
 BYTE = "<B"
 SHORT = "<H"
 INT = "<I"
+WORD = "<I"
 LONG = "<Q"
-WORD = "<Q"
 PTR1 = "P1"
 PTR = "P"
 POINTER = "P"
 POIN = "P"
+
+
+def define(value: int):
+    v = varname()
+    GLOBALS[v] = value
+    return value
 
 
 def get_offset():
@@ -49,10 +62,17 @@ def load_source(source_file: str):
 
     :param source_file: file name of the source file/ROM, relative to pwd
     """
-    global BUFFER, STREAM
-    with open(source_file, "rb") as file:
-        BUFFER = bytearray(file.read())
-        STREAM = BytesIO(BUFFER)
+    global BUFFER, DATA_MAX
+    BUFFER = numpy.fromfile(source_file, dtype=numpy.byte)
+    npstream.STREAM = NpStream(BUFFER, 0)
+    DATA_MAX = BUFFER.shape[0]
+
+
+def expand_data():
+    global BUFFER
+    s = BUFFER.shape[0]
+    s = 2 ** math.ceil(math.log2(s)) * 2
+    BUFFER = numpy.resize(BUFFER, s)
 
 
 def output(target_file: str):
@@ -62,28 +82,38 @@ def output(target_file: str):
     :param target_file: file name of the target file, relative to pwd
     """
     with open(target_file, "wb") as file:
-        file.write(BUFFER)
+        file.write(BUFFER[:DATA_MAX].tobytes())
 
 
-def offset(position: int):
+def offset(position: Union[int, NpStream]):
     """Change the offset to the target location.
 
-    :returns: an object that reverts the offset if used in a with block.
+    :returns: an object that can revert the offset if used in a with block.
     """
-    prev = get_offset()
-    revert = TempOffset(prev)
-    STREAM.seek(position)
-    return revert
+    global STREAM
+    ref = StreamRevert(STREAM)
+    if isinstance(position, int):
+        STREAM = NpStream(BUFFER, position)
+    else:
+        STREAM = position
+    return ref
+
+
+def write_to(array: numpy.ndarray):
+    """Redirect the stream to an empty numpy.array
+
+    :returns: an object that can revert the stream if used in a with block.
+    """
+    global STREAM
+    ref = StreamRevert(STREAM)
+    STREAM = NpStream(array, 0)
+    return ref
 
 
 def advance(delta: int):
-    """Move the offset forward by delta.
-    :returns: an object that reverts the offset if used in a with block.
+    """Move the offset of the CURRENT STREAM forward by delta.
     """
-    prev = get_offset()
-    revert = TempOffset(prev)
-    STREAM.seek(prev + delta)
-    return revert
+    STREAM.seek(STREAM.tell() + delta)
 
 
 def thumb(pointer: int):
@@ -107,8 +137,8 @@ def fetch(name: Union[str, int]):
         return name
     if name in LABELS:
         return ptr(LABELS[name])
-    elif hasattr(globals, name):
-        return getattr(globals, name)
+    elif name in GLOBALS:
+        return GLOBALS[name]
     else:
         if name not in HOOKS:
             HOOKS[name] = []
@@ -129,12 +159,15 @@ def __masking(value: int, data_type: str):
     return value
 
 
-def write(obj: Union[str, int, Collection[Union[str, int]]], data_type: str):
+def write(obj: Union[str, int, Collection[Union[str, int]], bytes, numpy.ndarray], data_type: str = BYTE):
     """Write data of a given type to the current offset
 
-    :param obj: data, could be an int, a string identifier, or a collection of them
+    :param obj: data, could be an int, a string identifier, a collection of them, bytes, or a numpy byte array
     :param data_type: one of the pre-defined data types.
     """
+    if isinstance(obj, bytes) or isinstance(obj, numpy.ndarray):
+        STREAM.write(obj)
+        return
     last_bit = 0
     if not hasattr(obj, '__iter__'):
         obj = [obj]
@@ -152,16 +185,12 @@ def write(obj: Union[str, int, Collection[Union[str, int]]], data_type: str):
             STREAM.write(struct.pack(data_type, __masking(i | last_bit, data_type)))
 
 
-def write_int(*obj: Union[str, int]):
-    write(obj, INT)
+def write_byte(*obj: Union[str, int]):
+    write(obj, BYTE)
 
 
 def write_short(*obj: Union[str, int]):
     write(obj, SHORT)
-
-
-def write_byte(*obj: Union[str, int]):
-    write(obj, BYTE)
 
 
 def write_word(*obj: Union[str, int]):
@@ -181,16 +210,12 @@ def write_text(string: str):
 
 
 def memcpy(src, tar, size):
-    for i in range(size):
-        BUFFER[tar + i] = BUFFER[src + i]
+    BUFFER[tar: tar + size] = BUFFER[src: src + size]
 
 
 def peek(data_type: str) -> int:
-    with label("_", 1):
-        value = STREAM.read(size(data_type))
-        if data_type == PTR:
-            data_type = WORD
-        return struct.unpack(data_type, value)[0]
+    value = STREAM.peek(size(data_type))
+    return struct.unpack(data_type, value)[0]
 
 
 def write_mask(byte: int, mask: int):
@@ -199,15 +224,15 @@ def write_mask(byte: int, mask: int):
 
 
 def align(bytes: int = 4):
-    offset((get_offset() + bytes - 1) // bytes * bytes)
+    STREAM.align(bytes)
 
 
 def label(name: str, bytes: int = 4) -> int:
     align(bytes)
+    data = STREAM.tell()
     if name != "_":
-        LABELS[name] = get_offset()
+        LABELS[name] = data
         if name in HOOKS:
-            data = get_offset()
             for hook in HOOKS[name]:
                 with offset(hook):
                     write(data, PTR)
@@ -220,22 +245,22 @@ def table(table_name: str, row_shape: Union[int, str, Collection[str]],
     label(table_name)
     if isinstance(row_shape, str):
         row_shape = size(row_shape)
-    elif not isinstance(row, int):
+    elif not isinstance(row_shape, int):
         row_shape = sum([size(i) for i in row_shape])
     advance(row_shape * num_rows)
     TABLES[table_name] = LABELS[table_name], row_shape, free, num_rows
     if default_row != b"":
-        for i in range(free, num_rows):
-            with row(table_name, i):
-                STREAM.write(default_row)
+        default_row = numpy.frombuffer(default_row, dtype=numpy.ubyte)
+        with offset(LABELS[table_name]):
+            STREAM.write(numpy.tile(default_row, num_rows))
 
 
 def repoint(table_name: str, source_offset: int, count: int, pointers: Collection[int]):
-    target_pos = LABELS[table_name]
-    memcpy(source_offset, target_pos, count * TABLES[table_name][1])
+    target_offset = LABELS[table_name]
+    memcpy(source_offset, target_offset, count * TABLES[table_name][1])
     for i in pointers:
         with offset(i):
-            write_ptr(target_pos)
+            write_ptr(target_offset)
 
 
 def row(table_name: str, row_number: int = -1):
