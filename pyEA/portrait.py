@@ -1,7 +1,6 @@
 
 from PIL import Image
 import numpy
-from typing import *
 import lz77
 from graphics import to_gba, palette_to_bytes
 

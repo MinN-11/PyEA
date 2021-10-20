@@ -1,4 +1,0 @@
-
-ITEM_STRUCT = {
-
-}

@@ -19,6 +19,7 @@ SHORT = "<H"
 INT = "<I"
 LONG = "<Q"
 WORD = "<Q"
+PTR1 = "P1"
 PTR = "P"
 POINTER = "P"
 POIN = "P"
@@ -97,11 +98,13 @@ def ptr(pointer: int):
     return 0x8000000 + pointer
 
 
-def fetch(name: str):
+def fetch(name: Union[str, int]):
     """Convert an identifier to it's value.
     if the identifier is not yet in scope,
     setup a hook for the label.
     """
+    if isinstance(name, int):
+        return name
     if name in LABELS:
         return ptr(LABELS[name])
     elif hasattr(globals, name):
@@ -111,6 +114,13 @@ def fetch(name: str):
             HOOKS[name] = []
         HOOKS[name].append(get_offset())
         return 0
+
+
+def bitfield(items: Collection[Union[str, int]]):
+    v = 0
+    for i in items:
+        v |= fetch(i)
+    return v
 
 
 def __masking(value: int, data_type: str):
@@ -125,18 +135,21 @@ def write(obj: Union[str, int, Collection[Union[str, int]]], data_type: str):
     :param obj: data, could be an int, a string identifier, or a collection of them
     :param data_type: one of the pre-defined data types.
     """
-
+    last_bit = 0
     if not hasattr(obj, '__iter__'):
         obj = [obj]
+    if data_type == PTR1:
+        data_type = PTR
+        last_bit = 1
     if data_type == PTR:
         data_type = WORD
         obj = [ptr(i) if isinstance(i, int) else i for i in obj]
 
     for i in obj:
         if isinstance(i, str):
-            STREAM.write(struct.pack(data_type, __masking(fetch(i), data_type)))
+            STREAM.write(struct.pack(data_type, __masking(fetch(i) | last_bit, data_type)))
         else:
-            STREAM.write(struct.pack(data_type, __masking(i, data_type)))
+            STREAM.write(struct.pack(data_type, __masking(i | last_bit, data_type)))
 
 
 def write_int(*obj: Union[str, int]):
@@ -157,6 +170,19 @@ def write_word(*obj: Union[str, int]):
 
 def write_ptr(*obj: Union[str, int]):
     write(obj, PTR)
+
+
+def write_ptr1(*obj: Union[str, int]):
+    write(obj, PTR1)
+
+
+def write_text(string: str):
+    pass
+
+
+def memcpy(src, tar, size):
+    for i in range(size):
+        BUFFER[tar + i] = BUFFER[src + i]
 
 
 def peek(data_type: str) -> int:
@@ -204,13 +230,34 @@ def table(table_name: str, row_shape: Union[int, str, Collection[str]],
                 STREAM.write(default_row)
 
 
+def repoint(table_name: str, source_offset: int, count: int, pointers: Collection[int]):
+    target_pos = LABELS[table_name]
+    memcpy(source_offset, target_pos, count * TABLES[table_name][1])
+    for i in pointers:
+        with offset(i):
+            write_ptr(target_pos)
+
+
 def row(table_name: str, row_number: int = -1):
     position, row_len, row_num, num_rows = TABLES[table_name]
     if row_number == -1:
         row_number = row_num
+        row_num += 1
     if row_number >= num_rows:
         print(f"Warning: Writing to row {row_number} on table {table_name} at {hex(position)} with {num_rows} rows.")
-    return offset(position)
+    return offset(position + row_len * row_number)
+
+
+def write_row(data_type: str, table_name: str, row_number: int = -1):
+    """write the row number to current offset and set offset to row and """
+    position, row_len, row_num, num_rows = TABLES[table_name]
+    if row_number == -1:
+        row_number = row_num
+        row_num += 1
+    write(row_number, data_type)
+    if row_number >= num_rows:
+        print(f"Warning: Writing to row {row_number} on table {table_name} at {hex(position)} with {num_rows} rows.")
+    return offset(position + row_len * row_number)
 
 
 def load(file_name: str):

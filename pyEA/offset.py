@@ -19,5 +19,8 @@ class TempOffset:
         pyEA.STREAM.seek(self.last)
 
     def alloc(self):
-        child = pyEA.offset(self.last)
+        """Allocate data in freespace and write it's position at the current offset."""
+        aligned = self.last + 3 // 4 * 4
+        pyEA.write_ptr(aligned)
+        child = pyEA.offset(aligned)
         child.parent = self

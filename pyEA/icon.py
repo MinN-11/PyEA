@@ -3,6 +3,7 @@ from PIL import Image
 from graphics import to_gba
 import numpy
 from typing import *
+
 import lz77
 
 GBA_ITEM_PALETTE = (
@@ -14,11 +15,7 @@ GBA_ITEM_PALETTE = (
 
 
 def fix_item_icon(image: Image.Image):
-    image = image.convert('P', dither=Image.NONE, palette=GBA_ITEM_PALETTE)
-    arr = numpy.array(image.getdata(), dtype='<u1').reshape((16, 16))
-    buffer = split8x8(arr).flatten()
-    buffer = (buffer[1::2] << 4) + buffer[::2]
-    return buffer
+    return image.convert('P', dither=Image.NONE, palette=GBA_ITEM_PALETTE)
 
 
 def load_item_icon(file: str):
@@ -26,7 +23,8 @@ def load_item_icon(file: str):
     palette = image.palette.colors
     for c, v in enumerate(GBA_ITEM_PALETTE):
         if v not in palette or palette[v] != c:
-            return fix_item_icon(image)
+            image = fix_item_icon(image)
+            break
     arr = numpy.array(image.getdata(), dtype='<u1').reshape((16, 16))
     return to_gba(arr).tobytes()
 
