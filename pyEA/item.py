@@ -62,21 +62,21 @@ def parse_item(path):
     obj = json.loads(path + ".item")
     with __init__.row("items") as table_offset:
         with __init__.write_row(__init__.SHORT, "text"):
-            __init__.write_text(obj["name"])
+            __init__.write_string(obj["name"])
 
         desc = obj.get("description", 403)
         if isinstance(desc, int):
             __init__.write_short(desc)
         else:
             with __init__.write_row(__init__.SHORT, "text"):
-                __init__.write_text(desc)
+                __init__.write_string(desc)
 
         use_text = obj.get("use_text", 403)
         if isinstance(use_text, int):
             __init__.write_short(use_text)
         else:
             with __init__.write_row(__init__.SHORT, "text"):
-                __init__.write_text(use_text)
+                __init__.write_string(use_text)
 
         __init__.write_byte(0)  # id
         weapon_type = __init__.fetch(obj.get("type", 9))

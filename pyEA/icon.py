@@ -2,9 +2,6 @@
 from PIL import Image
 from graphics import to_gba
 import numpy
-from typing import *
-
-import lz77
 
 GBA_ITEM_PALETTE = (
     (192, 248, 200), (248, 248, 248), (200, 192, 184), (144, 144, 128),

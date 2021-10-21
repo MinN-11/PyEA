@@ -1,5 +1,5 @@
 
-from pyEA import define
+from pyEA.globals import define
 
 FreeSpace = define(0x1000000)
 FreeSpace1 = define(0xb2a610)
@@ -11,3 +11,6 @@ FreeSpaceLength = define(0x1000000)
 FreeSpace1Length = define(0xD59FC)
 FreeSpace2Length = define(0x98E80)
 EndSpaceLength = define(0xE4D20)
+
+MenuGlyphTable = define(0x58C7EC)
+SerifGlyphTable = define(0x58F6F4)

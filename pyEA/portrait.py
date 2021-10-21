@@ -65,4 +65,4 @@ def load_portrait(file: str):
     minimug = to_gba(minimug).tobytes()
 
     palette = palette_to_bytes(palette)
-    return portrait, frames, lz77.compress(minimug), palette
+    return portrait, frames, palette, lz77.compress(minimug),

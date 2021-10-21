@@ -1,4 +1,3 @@
-from io import BytesIO
 import struct
 from typing import *
 import inspect
@@ -8,13 +7,13 @@ import zlib
 from pyEA.npstream import NpStream, StreamRevert
 import pyEA.npstream
 import pyEA.assets as assets
+import pyEA.textengine as textengine
+import pyEA.globals as g
 import numpy
-from varname import varname
 
 BUFFER: numpy.ndarray
 LABELS: Dict[str, int] = {}
 STREAM: Union[NpStream, None] = None
-GLOBALS: Dict[str, int] = {}
 HOOKS: Dict[str, List[int]] = {}
 TABLES: Dict[str, Tuple[int, int, int, int]] = {}
 TABLE_USAGE: Dict[str, Set] = {}
@@ -32,12 +31,6 @@ POINTER = "P"
 POIN = "P"
 
 
-def define(value: int):
-    v = varname()
-    GLOBALS[v] = value
-    return value
-
-
 def get_offset():
     """Get the offset of the file stream."""
     return STREAM.tell()
@@ -52,8 +45,8 @@ def size(data_type: str):
         return 1
     elif data_type == SHORT:
         return 2
-    elif data_type == INT:
-        return 2
+    elif data_type == LONG:
+        return 8
     return 4
 
 
@@ -81,6 +74,9 @@ def output(target_file: str):
 
     :param target_file: file name of the target file, relative to pwd
     """
+    if len(HOOKS) > 0:
+        print("Warning: Identifiers missing:")
+        print(f"{[i for i in HOOKS]}")
     with open(target_file, "wb") as file:
         file.write(BUFFER[:DATA_MAX].tobytes())
 
@@ -96,6 +92,36 @@ def offset(position: Union[int, NpStream]):
         STREAM = NpStream(BUFFER, position)
     else:
         STREAM = position
+    return ref
+
+
+def alloc(position: Union[int, NpStream]):
+    """"Allocate" data at the target stream and write it's location at current offset
+
+    :returns: an object that can revert the offset if used in a with block.
+    """
+    global STREAM
+    ref = StreamRevert(STREAM)
+    if isinstance(position, int):
+        position = NpStream(BUFFER, position)
+    position.align(4)
+    write_ptr(position.tell())
+    STREAM = position
+    return ref
+
+
+def alloc_text(position: Union[int, NpStream]):
+    """"Allocate" data at the target stream and write it's location at current offset
+
+    :returns: an object that can revert the offset if used in a with block.
+    """
+    global STREAM
+    ref = StreamRevert(STREAM)
+    if isinstance(position, int):
+        position = NpStream(BUFFER, position)
+    position.align(4)
+    write_ptr(position.tell() | 0x80000000)
+    STREAM = position
     return ref
 
 
@@ -116,11 +142,6 @@ def advance(delta: int):
     STREAM.seek(STREAM.tell() + delta)
 
 
-def thumb(pointer: int):
-    """Convert a pointer to a thumb pointer"""
-    return pointer | 1
-
-
 def ptr(pointer: int):
     """Convert a offset to a pointer"""
     if pointer == 0:
@@ -137,8 +158,8 @@ def fetch(name: Union[str, int]):
         return name
     if name in LABELS:
         return ptr(LABELS[name])
-    elif name in GLOBALS:
-        return GLOBALS[name]
+    elif name in g.GLOBALS:
+        return g.GLOBALS[name]
     else:
         if name not in HOOKS:
             HOOKS[name] = []
@@ -205,8 +226,9 @@ def write_ptr1(*obj: Union[str, int]):
     write(obj, PTR1)
 
 
-def write_text(string: str):
-    pass
+def write_string(string: str):
+    buffer = numpy.char.asarray(string + "\0").tobytes()
+    write(buffer)
 
 
 def memcpy(src, tar, size):
@@ -214,6 +236,12 @@ def memcpy(src, tar, size):
 
 
 def peek(data_type: str) -> int:
+    if data_type == PTR:
+        value = STREAM.peek(4)
+        v = struct.unpack(WORD, value)[0]
+        if v == 0:
+            return 0
+        return v - 0x8000000
     value = STREAM.peek(size(data_type))
     return struct.unpack(data_type, value)[0]
 
@@ -225,6 +253,17 @@ def write_mask(byte: int, mask: int):
 
 def align(bytes: int = 4):
     STREAM.align(bytes)
+
+
+def is_aligned(bytes: int = 4):
+    return get_offset() % bytes == 0
+
+
+def script(func: Callable) -> Callable:
+    def wrapper():
+        label(func.__name__)
+        func()
+    return wrapper
 
 
 def label(name: str, bytes: int = 4) -> int:
@@ -253,6 +292,7 @@ def table(table_name: str, row_shape: Union[int, str, Collection[str]],
         default_row = numpy.frombuffer(default_row, dtype=numpy.ubyte)
         with offset(LABELS[table_name]):
             STREAM.write(numpy.tile(default_row, num_rows))
+    TABLE_USAGE[table_name] = set()
 
 
 def repoint(table_name: str, source_offset: int, count: int, pointers: Collection[int]):
@@ -263,11 +303,25 @@ def repoint(table_name: str, source_offset: int, count: int, pointers: Collectio
             write_ptr(target_offset)
 
 
+def _row_advance(table_name: table):
+    position, row_len, row_num, num_rows = TABLES[table_name]
+    while row_num in TABLE_USAGE[table_name]:
+        row_num += 1
+    TABLES[table_name] = position, row_len, row_num, num_rows
+
+
+def current_row(table_name: str):
+    _row_advance(table_name)
+    _, _, row_num, _ = TABLES[table_name]
+    return row_num
+
+
 def row(table_name: str, row_number: int = -1):
     position, row_len, row_num, num_rows = TABLES[table_name]
     if row_number == -1:
-        row_number = row_num
-        row_num += 1
+        _row_advance(table_name)
+        _, _, row_number, _ = TABLES[table_name]
+        TABLES[table_name] = position, row_len, row_num + 1, num_rows
     if row_number >= num_rows:
         print(f"Warning: Writing to row {row_number} on table {table_name} at {hex(position)} with {num_rows} rows.")
     return offset(position + row_len * row_number)
