@@ -10,5 +10,9 @@ def define(value: int):
     return value
 
 
+def set(name: str, value: int):
+    GLOBALS[name] = value
+
+
 def exists(value: str):
     return value in GLOBALS

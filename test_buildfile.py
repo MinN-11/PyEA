@@ -28,25 +28,21 @@ offset(FreeSpace2Stream)
 # should be called after tempering with fonts
 pyEA.textengine.populate()
 
+import pyEA.item
+pyEA.item.repoint_item_tables()
+
+
 print(pyEA.textengine.measure_string("You will be the first to die!"))
-print(pyEA.textengine.write_flex("You will be the first to die!", height=3, width=60))
+print(pyEA.textengine.flex("You will be the first to die!", height=3, width=60))
 
 item_name = 56
 item_desc = 160
 chara_name = 46
 
-with offset(0xA26C):
-    with offset(peek(POIN)):
-        table("text", PTR, 0x1000, 0xD48)
-
 table("text", PTR, 0x1000, 0xD48, 0xE8414.to_bytes(4, "little"))
-repoint("text", 0x15D48C, 0xD48, (0xA26C, 0xA2A0))
+repoint("text", 0xD48, (0xA26C, 0xA2A0))
 
-with row("text", 0x40C):
-    with alloc_text(FreeSpace2Stream):
-        print(pyEA.textengine.write_flex("Silver Rapier", menu=True, width=56))
-        textengine.write_text(pyEA.textengine.write_flex("Silver Rapier", menu=True, width=56))
-
+textengine.write_flex("Silver Rapier", menu=True, width=56, row=0x40C)
 
 Eirika = 1
 Ephraim = 2
@@ -59,19 +55,23 @@ c.load(Eirika, ML)
 c.load(Ephraim, MR)
 
 c.switch(Eirika)
-c.build_dialogue(f"{MID_BLINK}Hello, I'm Eirika{MID_BLINK}")
+c.build_dialogue(f"Hello, I'm Eirika")
 
 c.switch(Ephraim)
-c.build_dialogue(f"{RED}I don't pick fights I can't win.{RED}")
+c.build_dialogue(f"I don't pick fights I can't win.")
 
 c.move(Ephraim, RL)
 c.build_dialogue(f"I moved to the left!")
 
 c.write()
 
+load("ReaverSplit.s")
+load("AuraSkillCheck.c")
+load("ItemTemplate.item")
 
 # should be called after ALL text have been "added"
 textengine.dump_text()
 output("HackRom.gba")
 
 
+expose("sym.event", True)

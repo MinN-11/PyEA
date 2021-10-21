@@ -1,0 +1,29 @@
+{
+  "name": "Ion Sword",
+  "description": "A glowing sword",
+  "use_text": "Restores 10 hp",
+  "type": "Sword",
+  "ability": ["Indestructible", "MagicDamage"],
+  "weapon_lock": {
+    "type": "HardCharacterLock",
+    "array": ["Eirika", "Ephraim"]
+  },
+  "stats": {
+    "str": 5
+  },
+  "effective": {
+    "fliers": 3
+  },
+  "uses": 20,
+  "might": 10,
+  "hit": 90,
+  "crit": 15,
+  "range": [1, 2],
+  "price": 80,
+  "price_total": 1600,
+  "use_effect": "VulneraryUseEffect",
+  "damage_effect": "NosferatuEffect",
+  "rank": "A",
+  "wexp": 1,
+  "skill": "Sol"
+}

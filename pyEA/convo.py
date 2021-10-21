@@ -28,7 +28,7 @@ class Convo:
 
     def load(self, character: int, where: str):
         self.refs[character] = where
-        self.buffer += where + LOAD + chr(character)
+        self.buffer += where + LOAD + chr(character) + chr(1)
 
     def switch(self, character: int):
         self.buffer += self.refs[character]
@@ -40,7 +40,7 @@ class Convo:
         self.buffer += self.refs[character] + CLEAR
 
     def build_dialogue(self, string: str):
-        self.buffer += auto_a(text.write_normal(string, width=160, height=99))
+        self.buffer += auto_a(text.normal(string, width=160, height=99))
 
     def pause_for_event(self):
         self.buffer += EVENTS

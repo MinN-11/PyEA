@@ -6,7 +6,6 @@ import os
 import zlib
 from pyEA.npstream import NpStream, StreamRevert
 import pyEA.npstream
-import pyEA.assets as assets
 import pyEA.textengine as textengine
 import pyEA.globals as g
 import numpy
@@ -55,9 +54,9 @@ def load_source(source_file: str):
 
     :param source_file: file name of the source file/ROM, relative to pwd
     """
-    global BUFFER, DATA_MAX
+    global BUFFER, DATA_MAX, STREAM
     BUFFER = numpy.fromfile(source_file, dtype=numpy.byte)
-    npstream.STREAM = NpStream(BUFFER, 0)
+    STREAM = NpStream(BUFFER, 0)
     DATA_MAX = BUFFER.shape[0]
 
 
@@ -96,7 +95,7 @@ def offset(position: Union[int, NpStream]):
 
 
 def alloc(position: Union[int, NpStream]):
-    """"Allocate" data at the target stream and write it's location at current offset
+    """"Allocate" data at the target stream and write it's location to current offset as a pointer
 
     :returns: an object that can revert the offset if used in a with block.
     """
@@ -106,21 +105,6 @@ def alloc(position: Union[int, NpStream]):
         position = NpStream(BUFFER, position)
     position.align(4)
     write_ptr(position.tell())
-    STREAM = position
-    return ref
-
-
-def alloc_text(position: Union[int, NpStream]):
-    """"Allocate" data at the target stream and write it's location at current offset
-
-    :returns: an object that can revert the offset if used in a with block.
-    """
-    global STREAM
-    ref = StreamRevert(STREAM)
-    if isinstance(position, int):
-        position = NpStream(BUFFER, position)
-    position.align(4)
-    write_ptr(position.tell() | 0x80000000)
     STREAM = position
     return ref
 
@@ -167,7 +151,9 @@ def fetch(name: Union[str, int]):
         return 0
 
 
-def bitfield(items: Collection[Union[str, int]]):
+def bitfield(items: Union[str, int, Collection[Union[str, int]]]):
+    if isinstance(items, str) or isinstance(items, int):
+        items = [items]
     v = 0
     for i in items:
         v |= fetch(i)
@@ -227,7 +213,7 @@ def write_ptr1(*obj: Union[str, int]):
 
 
 def write_string(string: str):
-    buffer = numpy.char.asarray(string + "\0").tobytes()
+    buffer = numpy.array([ord(i) for i in string] + [0], dtype=numpy.ubyte).tobytes()
     write(buffer)
 
 
@@ -279,6 +265,26 @@ def label(name: str, bytes: int = 4) -> int:
     return ptr(get_offset())
 
 
+def text_label(name: str, bytes: int = 4) -> int:
+    align(bytes)
+    data = STREAM.tell()
+    if name != "_":
+        LABELS[name] = data
+        if name in HOOKS:
+            for hook in HOOKS[name]:
+                with offset(hook):
+                    write(data | 0x80000000, PTR)
+            HOOKS.pop(name)
+    return ptr(get_offset())
+
+
+def table_from(pointer_address: int, table_name: str, row_shape: Union[int, str, Collection[str]],
+               num_rows: int, free: int = 0, default_row: bytes = b""):
+    with offset(pointer_address):
+        with offset(peek(PTR)):
+            table(table_name, row_shape, num_rows, free, default_row)
+
+
 def table(table_name: str, row_shape: Union[int, str, Collection[str]],
           num_rows: int, free: int = 0, default_row: bytes = b""):
     label(table_name)
@@ -295,7 +301,10 @@ def table(table_name: str, row_shape: Union[int, str, Collection[str]],
     TABLE_USAGE[table_name] = set()
 
 
-def repoint(table_name: str, source_offset: int, count: int, pointers: Collection[int]):
+def repoint(table_name: str, count: int, pointers: Collection[int], source_offset: int = 0):
+    if source_offset == 0:
+        with offset(next(i for i in pointers)):
+            source_offset = peek(PTR)
     target_offset = LABELS[table_name]
     memcpy(source_offset, target_offset, count * TABLES[table_name][1])
     for i in pointers:
@@ -316,27 +325,25 @@ def current_row(table_name: str):
     return row_num
 
 
-def row(table_name: str, row_number: int = -1):
-    position, row_len, row_num, num_rows = TABLES[table_name]
+def row(table_name: str, row_number: int = -1, data_type: str = ""):
+    position, row_len, row_num, max_rows = TABLES[table_name]
     if row_number == -1:
         _row_advance(table_name)
         _, _, row_number, _ = TABLES[table_name]
-        TABLES[table_name] = position, row_len, row_num + 1, num_rows
-    if row_number >= num_rows:
-        print(f"Warning: Writing to row {row_number} on table {table_name} at {hex(position)} with {num_rows} rows.")
+        TABLES[table_name] = position, row_len, row_number + 1, max_rows
+    if data_type != "":
+        write(row_number, data_type)
+    if row_number >= max_rows:
+        print(f"Warning: Writing to row {row_number} on table {table_name} at {hex(position)} with {max_rows} rows.")
     return offset(position + row_len * row_number)
 
 
 def write_row(data_type: str, table_name: str, row_number: int = -1):
-    """write the row number to current offset and set offset to row and """
-    position, row_len, row_num, num_rows = TABLES[table_name]
-    if row_number == -1:
-        row_number = row_num
-        row_num += 1
-    write(row_number, data_type)
-    if row_number >= num_rows:
-        print(f"Warning: Writing to row {row_number} on table {table_name} at {hex(position)} with {num_rows} rows.")
-    return offset(position + row_len * row_number)
+    """write the row number to current offset and set offset to row"""
+    return row(table_name, row_number, data_type)
+
+
+import pyEA.assets as assets
 
 
 def load(file_name: str):
@@ -344,23 +351,23 @@ def load(file_name: str):
     path = os.path.dirname(file)
     base, ext = os.path.splitext(file_name)
     base_path = os.path.join(path, file_name)
-    compiled_path = os.path.join(path, base + ".asset")
-    with open(base_path, "rb") as file:
-        buffer = file.read()
-        if ext not in assets.ASSET_TYPES or assets.ASSET_TYPES[ext] is None:
-            if ext not in assets.ASSET_TYPES:
-                print(f"Warning: Unknown file extension {ext} in {file}.")
+    if ext not in assets.ASSET_TYPES or assets.ASSET_TYPES[ext] is None:
+        if ext not in assets.ASSET_TYPES:
+            print(f"Warning: Unknown file extension {ext} in {file}.")
+        with open(base_path, "rb") as file:
+            buffer = file.read()
             STREAM.write(buffer)
-            return
-        crc = zlib.crc32(buffer)
-        if os.path.isfile(compiled_path):
-            with open(compiled_path, "rb") as file2:
-                buffer2 = file2.read()
-                if int.from_bytes(buffer2[:4], byteorder="little") == crc:
-                    STREAM.write(buffer2[4:])
-                    return
-        buffer2 = assets.ASSET_TYPES[ext](buffer)
-        with open(compiled_path, "wb") as file2:
-            file2.write(crc.to_bytes(4, "little"))
-            file2.write(buffer2)
-        STREAM.write(buffer2)
+        return
+    buffer = assets.ASSET_TYPES[ext](path, base)
+    STREAM.write(buffer)
+
+
+def expose(file_name, expose_globals=False):
+    buffer = ""
+    for i in LABELS:
+        buffer += f"#define {i} {hex(ptr(LABELS[i]))}\n"
+    if expose_globals:
+        for i in globals.GLOBALS:
+            buffer += f"#define {i} {hex(globals.GLOBALS[i])}\n"
+    with open(file_name, "w") as file:
+        file.write(buffer)

@@ -64,3 +64,15 @@ def jump_to_hack2(offset):
 def jump_to_hack3(offset):
     pyEA.write_short(0x4B00, 0x4718)
     pyEA.write_ptr1(offset)
+
+
+@macro
+@requires_align4
+def goto(label):
+    pass
+
+
+@macro
+@requires_align4
+def elabel(label):
+    pass

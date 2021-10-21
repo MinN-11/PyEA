@@ -70,7 +70,7 @@ def __draw(menu, space, string, width):
     return buffer
 
 
-def write_flex(string: str, menu=False, width=160, height=1):
+def flex(string: str, menu=False, width=160, height=1):
     string = asciify(string)
     narrow_string = to_narrow(string)
     length = measure_string(string, menu)
@@ -86,7 +86,7 @@ def write_flex(string: str, menu=False, width=160, height=1):
     return __draw(menu, space, string, width)
 
 
-def write_normal(string: str, menu=False, width=160, height=1):
+def normal(string: str, menu=False, width=160, height=1):
     string = asciify(string)
     length = measure_string(string, menu)
     lines = math.ceil(length / width)
@@ -96,7 +96,7 @@ def write_normal(string: str, menu=False, width=160, height=1):
     return __draw(menu, space, string, width)
 
 
-def write_narrow(string: str, menu=False, width=160, height=1):
+def narrow(string: str, menu=False, width=160, height=1):
     string = asciify(string)
     string = to_narrow(string)
     length = measure_string(string, menu)
@@ -107,14 +107,26 @@ def write_narrow(string: str, menu=False, width=160, height=1):
     return __draw(menu, space, string, width)
 
 
-def write_text(string: str):
-    pyEA.write_short(pyEA.current_row("text"))
-    with pyEA.row("text"):
+def write_text(string: str, row=-1):
+    pyEA.write_short(row if row != -1 else pyEA.current_row("text"))
+    with pyEA.row("text", row):
         pyEA.write_ptr(f"_text_entry_{len(text_builder)}")
         text_builder.append(string)
 
 
+def write_flex(string: str, menu=False, width=160, height=1, row=-1):
+    write_text(flex(string, menu, width, height), row)
+
+
+def write_normal(string: str, menu=False, width=160, height=1, row=-1):
+    write_text(normal(string, menu, width, height), row)
+
+
+def write_narrow(string: str, menu=False, width=160, height=1, row=-1):
+    write_text(narrow(string, menu, width, height), row)
+
+
 def dump_text():
     for i, v in enumerate(text_builder):
-        pyEA.label(f"_text_entry_{i}")
+        pyEA.text_label(f"_text_entry_{i}")
         pyEA.write_string(v)
