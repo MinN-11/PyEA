@@ -33,6 +33,13 @@ $RECYCLE.BIN/
 *.ss8
 *.ss9
 *.gba.7z
+*.event
+*.s
+*.asm
+*.dmp
+*.asset
+*.png
+*.c
 
 # python cache
 __pycache__
