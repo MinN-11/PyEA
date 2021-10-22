@@ -1,0 +1,44 @@
+{
+  "name": "Soldier",
+  "description": "Well, a soldier.",
+  "promo_class": "Soldier",
+  "move_speed": 0,
+  "sort_order": 5,
+  "relative_power": 3,
+  "bases": {
+    "hp": 1, "str": 1, "mag": 1, "skl": 1, "luck": 1,
+    "spe": 1, "def": 1, "res": 1, "con": 1, "move": 1
+  },
+  "caps": {
+    "hp": 1, "str": 1, "mag": 1, "skl": 1,
+    "spe": 1, "def": 1, "res": 1, "con": 1
+  },
+  "growths": {
+    "hp": 1, "str": 1, "mag": 1, "skl": 1,
+    "luck": 1, "spe": 1, "def": 1, "res": 1
+  },
+  "promo_bonus": {
+    "hp": 1, "str": 1, "mag": 1, "skl": 1,
+    "spe": 1, "def": 1, "res": 1
+  },
+  "ranks": {
+    "sword": "D",
+    "axe": "D"
+  },
+  "ability": ["IsFemale", "IsBoss"],
+  "conversation_group": 0,
+  "skills": {
+    "personal": "Charisma",
+    "level_up": [
+      { "name": "Vantage", "level": 5},
+      { "name": "Wrath", "level": 10}
+    ]
+  },
+  "move_costs": "Infantry",
+  "rain_move_costs": "Infantry",
+  "snow_move_costs": "Infantry",
+  "terrain_avoid": "basic",
+  "terrain_defense": "basic",
+  "terrain_resistance": "basic",
+  "class_type": ["Horse", "Armor"]
+}

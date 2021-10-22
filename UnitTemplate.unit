@@ -1,0 +1,31 @@
+{
+  "name": "The Enemy",
+  "description": "An enemy unit.",
+  "class": "Soldier",
+  "minimug": 2,
+  "affinity": "Fire",
+  "sort_order": 5,
+  "lv": 10,
+  "bases": {
+    "hp": 1, "str": 2, "mag": 3, "skl": 4, "luck": 5,
+    "spe": 6, "def": 7, "res": 8, "con": 9
+  },
+  "growths": {
+    "hp": 1, "str": 2, "mag": 3, "skl": 4,
+    "luck": 5, "spe": 6, "def": 7, "res": 8
+  },
+  "ranks": {
+    "sword": "D",
+    "axe": "D"
+  },
+  "ability": ["IsFemale", "IsBoss"],
+  "conversation_group": 0,
+  "skills": {
+    "personal": "Charisma",
+    "level_up": [
+      { "name": "Vantage", "level": 5},
+      { "name": "Wrath", "level": 10}
+    ]
+  }
+
+}

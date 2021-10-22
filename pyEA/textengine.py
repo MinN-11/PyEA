@@ -3,6 +3,8 @@ from FE8.definitions import SerifGlyphTable, MenuGlyphTable
 import pyEA
 import math
 from typing import *
+from varname import varname
+import pyEA.globals
 
 NO_NARROW = 0
 NARROW = 1
@@ -108,8 +110,8 @@ def narrow(string: str, menu=False, width=160, height=1):
 
 
 def write_text(string: str, row=-1):
-    pyEA.write_short(row if row != -1 else pyEA.current_row("text"))
-    with pyEA.row("text", row):
+    pyEA.write_short(row if row != -1 else pyEA.current_row("TextTable"))
+    with pyEA.row("TextTable", row):
         pyEA.write_ptr(f"_text_entry_{len(text_builder)}")
         text_builder.append(string)
 
@@ -130,3 +132,13 @@ def dump_text():
     for i, v in enumerate(text_builder):
         pyEA.text_label(f"_text_entry_{i}")
         pyEA.write_string(v)
+
+
+# the "comply with event assembler" feature, will be deprecated in the final release
+def text_entry(string: str, row: int = -1):
+    entry = varname()
+    pyEA.globals.set(entry, row if row != -1 else pyEA.current_row("TextTable"))
+    with pyEA.row("TextTable", row):
+        pyEA.write_ptr(f"_text_entry_{len(text_builder)}")
+        text_builder.append(string)
+

@@ -60,3 +60,10 @@ def compress(data):
     )
 
     return result + b'\x00' * (-len(result) % 4)
+
+
+try:
+    import pyfastgbalz77
+    compress = lambda x: pyfastgbalz77.compress(x, False)
+except ImportError:
+    pass

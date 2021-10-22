@@ -3,7 +3,7 @@ from typing import *
 import inspect
 import math
 import os
-import zlib
+from varname import varname
 from pyEA.npstream import NpStream, StreamRevert
 import pyEA.npstream
 import pyEA.textengine as textengine
@@ -63,8 +63,8 @@ def load_source(source_file: str):
 def expand_data():
     global BUFFER
     s = BUFFER.shape[0]
-    s = 2 ** math.ceil(math.log2(s)) * 2
-    BUFFER = numpy.resize(BUFFER, s)
+    s = 2 ** math.ceil(math.log2(s)) * 2 - s
+    BUFFER = numpy.pad(BUFFER, ((0, s),))
 
 
 def output(target_file: str):
@@ -94,7 +94,7 @@ def offset(position: Union[int, NpStream]):
     return ref
 
 
-def alloc(position: Union[int, NpStream]):
+def alloc(position: Union[int, NpStream], add1: bool = False):
     """"Allocate" data at the target stream and write it's location to current offset as a pointer
 
     :returns: an object that can revert the offset if used in a with block.
@@ -104,7 +104,10 @@ def alloc(position: Union[int, NpStream]):
     if isinstance(position, int):
         position = NpStream(BUFFER, position)
     position.align(4)
-    write_ptr(position.tell())
+    if add1:
+        write_ptr1(position.tell())
+    else:
+        write_ptr(position.tell())
     STREAM = position
     return ref
 
@@ -279,10 +282,10 @@ def text_label(name: str, bytes: int = 4) -> int:
 
 
 def table_from(pointer_address: int, table_name: str, row_shape: Union[int, str, Collection[str]],
-               num_rows: int, free: int = 0, default_row: bytes = b""):
+               num_rows: int, free: int = 0):
     with offset(pointer_address):
         with offset(peek(PTR)):
-            table(table_name, row_shape, num_rows, free, default_row)
+            table(table_name, row_shape, num_rows, free)
 
 
 def table(table_name: str, row_shape: Union[int, str, Collection[str]],
@@ -365,9 +368,12 @@ def load(file_name: str):
 def expose(file_name, expose_globals=False):
     buffer = ""
     for i in LABELS:
-        buffer += f"#define {i} {hex(ptr(LABELS[i]))}\n"
+        if not i.startswith("_"):
+            buffer += f"#define {i} {hex(ptr(LABELS[i]))}\n"
     if expose_globals:
         for i in globals.GLOBALS:
-            buffer += f"#define {i} {hex(globals.GLOBALS[i])}\n"
+            if not i.startswith("_"):
+                buffer += f"#define {i} {hex(globals.GLOBALS[i])}\n"
     with open(file_name, "w") as file:
         file.write(buffer)
+

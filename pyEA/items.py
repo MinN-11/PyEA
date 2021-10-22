@@ -10,20 +10,20 @@ TOMES_ALWAYS_ATTACK_RES = True
 
 
 def repoint_item_tables():
-    pyEA.table("weapon_locks", pyEA.PTR, 256, 1, b"\x00\x00\x00\x00")
+    pyEA.table("WeaponLocks", pyEA.PTR, 256, 1, b"\x00\x00\x00\x00")
 
-    pyEA.table("item_icon_table", 128, 256)
-    pyEA.repoint("item_icon_table", 224, (0x36B4, 0x3788))
+    pyEA.table("ItemIconTable", 128, 256)
+    pyEA.repoint("ItemIconTable", 224, (0x36B4, 0x3788))
 
-    pyEA.table("item_table", 36, 256, 0xBC)
-    pyEA.repoint("item_table", 224, (0x16410, 0x16440, 0x16470, 0x164A0, 0x164D0, 0x16530, 0x16500, 0x16570, 0x166D0,
-                                     0x1671C, 0x1678C, 0x167E0, 0x1683C, 0x168C4, 0x1683C, 0x1698C, 0x16A10, 0x16AD0,
-                                     0x16B18, 0x16BB4, 0x16C14, 0x16C7C, 0x16D04, 0x16DD4, 0x16F0C, 0x16FA4, 0x17028,
-                                     0x1707C, 0x170C8, 0x170F8, 0x1727C, 0x172D8, 0x1735C, 0x173AC, 0x17420, 0x174A4,
-                                     0x174E4, 0x17514, 0x1752C, 0x17544, 0x17560, 0x17580, 0x175A4, 0x175A4, 0x175D0,
-                                     0x175F0, 0x17608, 0x17620, 0x17638, 0x1765C, 0x17680, 0x1769C, 0x176B4, 0x176CC,
-                                     0x176E4, 0x176FC, 0x17718, 0x17738, 0x17750, 0x17768,
-                                     0x17794, 0x177AC, 0x177C0, 0x17718, 0x1C1FB8, 0x1C20E0))
+    pyEA.table("ItemTable", 36, 256, 0xBC)
+    pyEA.repoint("ItemTable", 224, (0x16410, 0x16440, 0x16470, 0x164A0, 0x164D0, 0x16530, 0x16500, 0x16570, 0x166D0,
+                                    0x1671C, 0x1678C, 0x167E0, 0x1683C, 0x168C4, 0x1683C, 0x1698C, 0x16A10, 0x16AD0,
+                                    0x16B18, 0x16BB4, 0x16C14, 0x16C7C, 0x16D04, 0x16DD4, 0x16F0C, 0x16FA4, 0x17028,
+                                    0x1707C, 0x170C8, 0x170F8, 0x1727C, 0x172D8, 0x1735C, 0x173AC, 0x17420, 0x174A4,
+                                    0x174E4, 0x17514, 0x1752C, 0x17544, 0x17560, 0x17580, 0x175A4, 0x175A4, 0x175D0,
+                                    0x175F0, 0x17608, 0x17620, 0x17638, 0x1765C, 0x17680, 0x1769C, 0x176B4, 0x176CC,
+                                    0x176E4, 0x176FC, 0x17718, 0x17738, 0x17750, 0x17768,
+                                    0x17794, 0x177AC, 0x177C0, 0x17718, 0x1C1FB8, 0x1C20E0))
 
 
 def parse_weapon_lock_array(weapon_lock_array: Union[None, List[Union[str, int]], Dict[str, Any]]):
@@ -95,10 +95,10 @@ def parse_item(path, filename):
         buffer = file.read()
         obj = json.loads(buffer)
 
-    with pyEA.row("item_table"):
+    with pyEA.row("ItemTable"):
         name = obj["name"]
         text.write_flex(name, menu=True, width=56, height=1)
-        pyEA.globals.set(name.replace(" ", ""), pyEA.current_row("item_table"))
+        pyEA.globals.set(name.replace(" ", ""), pyEA.current_row("ItemTable"))
 
         desc = obj.get("description", 403)
         if isinstance(desc, int):
@@ -112,7 +112,7 @@ def parse_item(path, filename):
         else:
             text.write_flex(use_text, menu=False, width=160, height=1)
 
-        pyEA.write_byte(pyEA.current_row("item_table") - 1)  # id
+        pyEA.write_byte(pyEA.current_row("ItemTable") - 1)  # id
         weapon_type = pyEA.fetch(obj.get("type", 9))
         pyEA.write_byte(weapon_type)
         ability = pyEA.bitfield(obj.get("ability", ()))
@@ -122,11 +122,11 @@ def parse_item(path, filename):
             ability |= 2
         pyEA.write_word(ability)
         pyEA.advance(-1)
-        weapon_lock = obj.get("weapon_locks", None)
+        weapon_lock = obj.get("WeaponLocks", None)
         if weapon_lock is not None:
-            with pyEA.write_row(pyEA.BYTE, "weapon_locks"):
+            with pyEA.write_row(pyEA.BYTE, "WeaponLocks"):
                 with pyEA.alloc(free_space):
-                    parse_weapon_lock_array(obj.get("weapon_locks", None))
+                    parse_weapon_lock_array(obj.get("WeaponLocks", None))
         else:
             pyEA.write_byte(0)
 
@@ -151,8 +151,8 @@ def parse_item(path, filename):
         pyEA.write_byte(parse_range(obj.get("range", 0)))
         pyEA.write_short(obj.get("price", obj.get("price_total", 0) / uses))
         pyEA.write_byte(parse_rank(obj.get("rank", 0)))
-        pyEA.write_byte(pyEA.current_row("item_icon_table"))
-        with pyEA.row("item_icon_table"):
+        pyEA.write_byte(pyEA.current_row("ItemIconTable"))
+        with pyEA.row("ItemIconTable"):
             pyEA.write(icon.load_item_icon(path, filename))
         pyEA.write_byte(obj.get("use_effect", 0))
         pyEA.write_byte(obj.get("damage_effect", 0))

@@ -2,7 +2,7 @@
   "name": "Ion Sword",
   "description": "A glowing sword",
   "use_text": "Restores 10 hp",
-  "type": "Sword",
+  "type": "sword",
   "ability": ["Indestructible", "MagicDamage"],
   "weapon_lock": {
     "type": "HardCharacterLock",

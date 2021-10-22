@@ -5,31 +5,33 @@ from pyEA.convo import Convo
 
 load_source("FE8_clean.gba")
 
-# resize the numpy buffer, without this, FreeSpaceStream cannot be used
+# resize the numpy buffer, without this FreeSpaceStream cannot be used
 expand_data()
 
-# A free space that starts from 0x1000000, almost unlimited size but will increase rom size
+# Free space that starts from 0x1000000, almost unlimited size but will increase rom size
 FreeSpaceStream = NpStream(pyEA.BUFFER, FreeSpace, FreeSpaceLength)
 
-# A free space that starts in BL range, small, should be used by engine hacks
+# Free space that starts in BL range, small, should be used by engine hacks
 FreeSpaceBLStream = NpStream(pyEA.BUFFER, FreeSpaceBLRange, FreeSpace1Length)
 
-# A medium sized free space, does not affect rom size
+# Medium sized free space, does not affect rom size
 FreeSpace1Stream = NpStream(pyEA.BUFFER, FreeSpace1, FreeSpace1Length)
 
-# A relatively small free space, does not affect rom size
+# Relatively small free space, does not affect rom size
 FreeSpace2Stream = NpStream(pyEA.BUFFER, FreeSpace2, FreeSpace2Length)
 
-# A medium sized free space, does not affect rom size
+# Medium sized free space, does not affect rom size
 EndSpaceStream = NpStream(pyEA.BUFFER, EndSpace, EndSpaceLength)
-
-offset(FreeSpace2Stream)
 
 # should be called after tempering with fonts
 pyEA.textengine.populate()
 
-import pyEA.item
-pyEA.item.repoint_item_tables()
+offset(FreeSpace2Stream)
+
+import pyEA.items, pyEA.classes, pyEA.units
+pyEA.items.repoint_item_tables()
+pyEA.units.repoint_unit_tables()
+pyEA.classes.repoint_class_tables()
 
 
 print(pyEA.textengine.measure_string("You will be the first to die!"))
@@ -39,8 +41,8 @@ item_name = 56
 item_desc = 160
 chara_name = 46
 
-table("text", PTR, 0x1000, 0xD48, 0xE8414.to_bytes(4, "little"))
-repoint("text", 0xD48, (0xA26C, 0xA2A0))
+table("TextTable", PTR, 0x1000, 0xD48, 0xE8414.to_bytes(4, "little"))
+repoint("TextTable", 0xD48, (0xA26C, 0xA2A0))
 
 textengine.write_flex("Silver Rapier", menu=True, width=56, row=0x40C)
 
@@ -68,6 +70,11 @@ c.write()
 load("ReaverSplit.s")
 load("AuraSkillCheck.c")
 load("ItemTemplate.item")
+load("UnitTemplate.unit")
+load("ClassTemplate.class")
+
+import pyEA.AA
+pyEA.AA.load_animation("cleric", "AA/")
 
 # should be called after ALL text have been "added"
 textengine.dump_text()
