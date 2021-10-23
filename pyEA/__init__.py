@@ -3,14 +3,16 @@ from typing import *
 import inspect
 import math
 import os
-from varname import varname
 from pyEA.npstream import NpStream, StreamRevert
 import pyEA.npstream
-import pyEA.textengine as textengine
+from pyEA import textengine
 import pyEA.globals as g
 import numpy
+from pyEA import ups
+
 
 BUFFER: numpy.ndarray
+SOURCE_NAME: str
 LABELS: Dict[str, int] = {}
 STREAM: Union[NpStream, None] = None
 HOOKS: Dict[str, List[int]] = {}
@@ -54,10 +56,11 @@ def load_source(source_file: str):
 
     :param source_file: file name of the source file/ROM, relative to pwd
     """
-    global BUFFER, DATA_MAX, STREAM
+    global BUFFER, DATA_MAX, STREAM, SOURCE_NAME
     BUFFER = numpy.fromfile(source_file, dtype=numpy.byte)
     STREAM = NpStream(BUFFER, 0)
     DATA_MAX = BUFFER.shape[0]
+    SOURCE_NAME = source_file
 
 
 def expand_data():
@@ -78,6 +81,9 @@ def output(target_file: str):
         print(f"{[i for i in HOOKS]}")
     with open(target_file, "wb") as file:
         file.write(BUFFER[:DATA_MAX].tobytes())
+        print("Making UPS patch...")
+        ups.make_ups(SOURCE_NAME, target_file, target_file[:target_file.index(".")] + ".ups")
+        print("Done!")
 
 
 def offset(position: Union[int, NpStream]):
