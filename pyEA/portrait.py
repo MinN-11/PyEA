@@ -45,7 +45,9 @@ def cut_image(arr: numpy.array):
     return portrait, frames, minimug
 
 
-SEARCH_RANGE = 2, 6
+SEARCH_RANGE = 1, 7
+
+
 def cv_locate_eye_mouse_pos(arr: numpy.array):
     eye = arr[48: 64, 96: 128]
     mouth = arr[80: 96, 96: 128]
@@ -134,3 +136,5 @@ def load_portrait(path: str, file: str, free_space, row: int = -1):
             file.write(buffer)
 
 
+def load_class_card(path: str, file: str, free_space, row: int = -1):
+    pass

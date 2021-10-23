@@ -10,15 +10,15 @@ from PIL import Image
 import zlib
 from pyEA.graphics import to_gba
 
-targets = ["Sword", "Lance", "Axe", "Bow", "Staff", "Magic", "Hand Axe", "Unarmed", "Monster"]
-
+targets = ["Sword", "Lance", "Axe", "Bow", "Staff", "Magic", "Hand Axe", "Unarmed", "????", "Monster"]
+hand_axe_table = [0x28, 0x29, 0x2C]
 
 def serialize_java_obj(obj):
     return b''.join([x.to_bytes(1, 'little', signed=True) for x in (obj.readObject(ignore_remaining_data=True))])
 
 
 def process_sheets(path, name, weapon):
-    frames_path = f'{path}/{weapon} Frame Data.dmp'
+    frames_path = f'{path}/{name}/{weapon} Frame Data.dmp'
     buffer = numpy.fromfile(frames_path, dtype=numpy.uint32)
     header = struct.pack("<L", ((buffer.shape[0] * 4) << 8) + 0x10)
     pyEA.write(header)
@@ -62,7 +62,6 @@ def load_sheet(path: str, file: str):
     data_arr = arr[:, :256]
     palette_arr = numpy.flip(arr[0:2, 256:264], axis=1).flatten()
     for i, v in enumerate(palette_arr):
-        print(i,v)
         data_arr[data_arr == v] = i + 16
     data_arr -= 16
     buffer = lz77.compress(to_gba(data_arr).tobytes())
@@ -72,14 +71,22 @@ def load_sheet(path: str, file: str):
     return buffer
 
 
-def load_animation(name, path):
+def load_animations(name, path):
     free_space = pyEA.STREAM
     for weapon in targets:
         pyEA.globals.set(f"{name}{weapon}Anim", pyEA.current_row("AnimTable"))
-        if not os.path.isfile(f"{path}/{weapon}.bin"):
+        bin_file = f"{path}/{name}/{weapon}.bin"
+        if not os.path.isfile(bin_file):
             continue
+        if weapon != "Hand Axe":
+            pyEA.write_byte(targets.index(weapon), 1)
+            pyEA.write_short(pyEA.current_row("AnimTable"))
+        else:
+            for axe in hand_axe_table:
+                pyEA.write_byte(axe, 0)
+                pyEA.write_short(pyEA.current_row("AnimTable"))
         with pyEA.row("AnimTable"):
-            with open(f"{path}/{weapon}.bin", 'rb') as file:
+            with open(bin_file, 'rb') as file:
                 obj = javaobj.JavaObjectUnmarshaller(file)
                 _ = obj.readObject(ignore_remaining_data=True).path
                 sheets_obj_list = obj.readObject(ignore_remaining_data=True).annotations
@@ -115,5 +122,5 @@ def load_animation(name, path):
                 index = int(match.group(1))
                 with pyEA.alloc(free_space):
                     pyEA.label(f"__aa_{name}_{weapon}_{index}")
-                    pyEA.write(load_sheet(path, sheet[:-4]))
-
+                    pyEA.write(load_sheet(f"{path}/{name}", sheet[:-4]))
+    pyEA.write_word(0)

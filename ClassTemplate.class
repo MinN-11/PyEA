@@ -6,20 +6,21 @@
   "sort_order": 5,
   "relative_power": 3,
   "bases": {
-    "hp": 1, "str": 1, "mag": 1, "skl": 1, "luck": 1,
-    "spe": 1, "def": 1, "res": 1, "con": 1, "move": 1
+    "hp": 1, "str": 2, "mag": 3, "skl": 4,
+    "spe": 6, "def": 7, "res": 8, "con": 9,
+    "move": 10
   },
   "caps": {
-    "hp": 1, "str": 1, "mag": 1, "skl": 1,
-    "spe": 1, "def": 1, "res": 1, "con": 1
+    "hp": 1, "str": 2, "mag": 3, "skl": 4,
+    "spe": 5, "def": 6, "res": 7, "con": 8
   },
   "growths": {
-    "hp": 1, "str": 1, "mag": 1, "skl": 1,
-    "luck": 1, "spe": 1, "def": 1, "res": 1
+    "hp": 1, "str": 2, "mag": 3, "skl": 4,
+    "luck": 5, "spe": 6, "def": 7, "res": 8
   },
   "promo_bonus": {
-    "hp": 1, "str": 1, "mag": 1, "skl": 1,
-    "spe": 1, "def": 1, "res": 1
+    "hp": 1, "str": 2, "mag": 3, "skl": 4,
+    "spe": 5, "def": 6, "res": 7
   },
   "ranks": {
     "sword": "D",

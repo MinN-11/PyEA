@@ -369,7 +369,7 @@ def expose(file_name, expose_globals=False):
     buffer = ""
     for i in LABELS:
         if not i.startswith("_"):
-            buffer += f"#define {i} {hex(ptr(LABELS[i]))}\n"
+            buffer += f"#define {i} {hex(LABELS[i])}\n"
     if expose_globals:
         for i in globals.GLOBALS:
             if not i.startswith("_"):

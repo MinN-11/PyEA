@@ -34,8 +34,6 @@ pyEA.units.repoint_unit_tables()
 pyEA.classes.repoint_class_tables()
 
 
-print(pyEA.textengine.measure_string("You will be the first to die!"))
-print(pyEA.textengine.flex("You will be the first to die!", height=3, width=60))
 
 item_name = 56
 item_desc = 160
@@ -50,6 +48,9 @@ Eirika = 1
 Ephraim = 2
 
 from FE8.text_codes import *
+
+print(pyEA.textengine.measure_string("You will be the first to die!"))
+print(pyEA.textengine.flex("You will be the first to die!", height=3, width=60).replace(NL, "[N]\n"))
 
 c = Convo()
 
@@ -73,10 +74,10 @@ load("ItemTemplate.item")
 load("UnitTemplate.unit")
 load("ClassTemplate.class")
 
-import pyEA.AA
-pyEA.AA.load_animation("cleric", "AA/")
+import pyEA.animations
+pyEA.animations.load_animations("cleric", "AA/")
 
-# should be called after ALL text have been "added"
+# should be called after ALL text have been added
 textengine.dump_text()
 output("HackRom.gba")
 

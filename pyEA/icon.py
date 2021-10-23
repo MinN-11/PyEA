@@ -13,7 +13,7 @@ GBA_ITEM_PALETTE = (
 )
 
 
-def fix_item_icon(image: Image.Image):
+def fix_palette(image: Image.Image):
     return image.convert('P', dither=Image.NONE, palette=GBA_ITEM_PALETTE)
 
 
@@ -31,7 +31,7 @@ def load_item_icon(path: str, file: str):
     palette = image.palette.colors
     for c, v in enumerate(GBA_ITEM_PALETTE):
         if v not in palette or palette[v] != c:
-            image = fix_item_icon(image)
+            image = fix_palette(image)
             break
     arr = numpy.array(image.getdata(), dtype='<u1').reshape((16, 16))
     buffer = to_gba(arr).tobytes()

@@ -95,6 +95,7 @@ def parse_item(path, filename):
         buffer = file.read()
         obj = json.loads(buffer)
 
+    item_id = pyEA.current_row("ItemTable")
     with pyEA.row("ItemTable"):
         name = obj["name"]
         text.write_flex(name, menu=True, width=56, height=1)
@@ -112,7 +113,7 @@ def parse_item(path, filename):
         else:
             text.write_flex(use_text, menu=False, width=160, height=1)
 
-        pyEA.write_byte(pyEA.current_row("ItemTable") - 1)  # id
+        pyEA.write_byte(item_id)  # id
         weapon_type = pyEA.fetch(obj.get("type", 9))
         pyEA.write_byte(weapon_type)
         ability = pyEA.bitfield(obj.get("ability", ()))
@@ -151,8 +152,8 @@ def parse_item(path, filename):
         pyEA.write_byte(parse_range(obj.get("range", 0)))
         pyEA.write_short(obj.get("price", obj.get("price_total", 0) / uses))
         pyEA.write_byte(parse_rank(obj.get("rank", 0)))
-        pyEA.write_byte(pyEA.current_row("ItemIconTable"))
-        with pyEA.row("ItemIconTable"):
+        pyEA.write_byte(item_id - 1)
+        with pyEA.row("ItemIconTable", item_id - 1):
             pyEA.write(icon.load_item_icon(path, filename))
         pyEA.write_byte(obj.get("use_effect", 0))
         pyEA.write_byte(obj.get("damage_effect", 0))
