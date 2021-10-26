@@ -24,10 +24,7 @@ FreeSpace2Stream = NpStream(pyEA.BUFFER, FreeSpace2, FreeSpace2Length)
 EndSpaceStream = NpStream(pyEA.BUFFER, EndSpace, EndSpaceLength)
 
 # should be called after tempering with fonts
-pyEA.textengine.load_font("PixelOperator.ttf")
 pyEA.textengine.populate()
-output("HackRom.gba")
-quit()
 
 offset(FreeSpace2Stream)
 
@@ -72,9 +69,9 @@ c.write()
 
 load("ReaverSplit.s")
 load("AuraSkillCheck.c")
-load("ItemTemplate.item")
-load("UnitTemplate.unit")
-load("ClassTemplate.class")
+load("ItemTemplate.item.json")
+load("UnitTemplate.unit.json")
+load("ClassTemplate.class.json")
 
 import pyEA.animations
 pyEA.animations.load_animations("cleric", "AA/")

@@ -24,6 +24,14 @@ text_builder = []
 glyph_set = [i for i in range(0x20, 0x7b)]
 
 
+def __init_glyph_tables():
+    if "MenuGlyphs" not in pyEA.TABLES:
+        with pyEA.offset(MenuGlyphTable):
+            pyEA.table("MenuGlyphs", pyEA.PTR, 256)
+    if "SerifGlyphs" not in pyEA.TABLES:
+        with pyEA.offset(SerifGlyphTable):
+            pyEA.table("SerifGlyphs", pyEA.PTR, 256)
+
 def asciify(string: str):
     string = string.replace('\u2018', "'")
     string = string.replace('\u2019', "'")
@@ -33,13 +41,10 @@ def asciify(string: str):
 
 
 def load_font(file):
-    with pyEA.offset(MenuGlyphTable):
-        pyEA.table("menu_glyphs", pyEA.PTR, 256)
-    with pyEA.offset(SerifGlyphTable):
-        pyEA.table("serif_glyphs", pyEA.PTR, 256)
+    __init_glyph_tables()
     font = ImageFont.truetype(file, 16)
     for i in glyph_set:
-        with pyEA.row("serif_glyphs", i):
+        with pyEA.row("SerifGlyphs", i):
             with pyEA.offset(pyEA.peek(pyEA.PTR)):
                 pyEA.write_word(0)
                 pyEA.write_byte(0)
@@ -52,7 +57,7 @@ def load_font(file):
                 pyEA.write_byte(font_size)
                 pyEA.write_short(0)
                 pyEA.write(arr)
-        with pyEA.row("menu_glyphs", i):
+        with pyEA.row("MenuGlyphs", i):
             with pyEA.offset(pyEA.peek(pyEA.PTR)):
                 pyEA.write_word(0)
                 pyEA.write_byte(0)
@@ -69,7 +74,7 @@ def load_font(file):
 
 def build_narrowfont():
     for i in glyph_set:
-        with pyEA.row("serif_glyphs", i):
+        with pyEA.row("SerifGlyphs", i):
             with pyEA.offset(pyEA.peek(pyEA.PTR)):
                 pyEA.advance(8)
                 arr = numpy.frombuffer(pyEA.peek_bytes(64), dtype="<u1")
@@ -85,14 +90,14 @@ def build_narrowfont():
                 buffer = buffer.flatten()
                 arr = buffer[::4] + (buffer[1::4] << 2) + (buffer[2::4] << 4) + (buffer[3::4] << 6)
 
-                with pyEA.row("serif_glyphs", i):
+                with pyEA.row("SerifGlyphs", i):
                     with pyEA.offset(pyEA.peek(pyEA.PTR)):
                         pyEA.advance(5)
                         pyEA.write_byte(font_size)
                         pyEA.advance(2)
                         pyEA.write(arr)
 
-        with pyEA.row("menu_glyphs", i):
+        with pyEA.row("MenuGlyphs", i):
             with pyEA.offset(pyEA.peek(pyEA.PTR)):
                 pyEA.advance(8)
                 arr = numpy.frombuffer(pyEA.peek_bytes(64), dtype="<u1")
@@ -108,7 +113,7 @@ def build_narrowfont():
                 buffer = buffer.flatten()
                 arr = buffer[::4] + (buffer[1::4] << 2) + (buffer[2::4] << 4) + (buffer[3::4] << 6)
 
-                with pyEA.row("menu_glyphs", i):
+                with pyEA.row("MenuGlyphs", i):
                     with pyEA.offset(pyEA.peek(pyEA.PTR)):
                         pyEA.advance(5)
                         pyEA.write_byte(font_size)
@@ -117,13 +122,9 @@ def build_narrowfont():
 
 
 def populate():
-    with pyEA.offset(MenuGlyphTable):
-        pyEA.table("menu_glyphs", pyEA.PTR, 256)
-    with pyEA.offset(SerifGlyphTable):
-        pyEA.table("serif_glyphs", pyEA.PTR, 256)
-    build_narrowfont()
+    __init_glyph_tables()
     for i in range(255):
-        for table, name in (MENU_GLYPHS, "menu_glyphs"), (SERIF_GLYPHS, "serif_glyphs"):
+        for table, name in (MENU_GLYPHS, "MenuGlyphs"), (SERIF_GLYPHS, "SerifGlyphs"):
             with pyEA.row(name, i):
                 ptr = pyEA.peek(pyEA.PTR)
                 if ptr == 0:

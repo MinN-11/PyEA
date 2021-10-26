@@ -70,19 +70,21 @@ def expand_data():
     BUFFER = numpy.pad(BUFFER, ((0, s),))
 
 
-def output(target_file: str):
+def output(target_file: str, use_ups: bool = True):
     """
     Write the changes to a target file.
 
     :param target_file: file name of the target file, relative to pwd
+    :param use_ups: if true, create a ups file
     """
     if len(HOOKS) > 0:
         print("Warning: Identifiers missing:")
         print(f"{[i for i in HOOKS]}")
     with open(target_file, "wb") as file:
         file.write(BUFFER[:DATA_MAX].tobytes())
-        print("Making UPS patch...")
-        #ups.make_ups(SOURCE_NAME, target_file, target_file[:target_file.index(".")] + ".ups")
+        if use_ups:
+            print("Making UPS patch...")
+            ups.make_ups(SOURCE_NAME, target_file, target_file[:target_file.index(".")] + ".ups")
         print("Done!")
 
 
@@ -355,19 +357,22 @@ import pyEA.assets as assets
 
 
 def load(file_name: str):
-    file = inspect.stack()[1].filename
-    path = os.path.dirname(file)
-    base, ext = os.path.splitext(file_name)
-    base_path = os.path.join(path, file_name)
-    if ext not in assets.ASSET_TYPES or assets.ASSET_TYPES[ext] is None:
-        if ext not in assets.ASSET_TYPES:
-            print(f"Warning: Unknown file extension {ext} in {file}.")
-        with open(base_path, "rb") as file:
-            buffer = file.read()
-            STREAM.write(buffer)
-        return
-    buffer = assets.ASSET_TYPES[ext](path, base)
-    STREAM.write(buffer)
+    full = os.path.dirname(inspect.stack()[1].filename)
+    full = os.path.join(full, file_name)
+
+    path, file = os.path.split(full)
+    for ext in assets.ASSET_TYPES:
+        if file.endswith(ext):
+            if assets.ASSET_TYPES[ext] is None:
+                with open(full, "rb") as file:
+                    buffer = file.read()
+                    STREAM.write(buffer)
+            else:
+                base = file[:-len(ext)]
+                buffer = assets.ASSET_TYPES[ext](path, base)
+                STREAM.write(buffer)
+            return
+    print(f"Warning: Unknown file extension in {file}.")
 
 
 def expose(file_name, expose_globals=False):

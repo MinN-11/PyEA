@@ -91,7 +91,7 @@ def parse_rank(rank):
 
 def parse_item(path, filename):
     free_space = pyEA.STREAM
-    with open(f"{path}/{filename}.item", "r") as file:
+    with open(f"{path}/{filename}.item.json", "r") as file:
         buffer = file.read()
         obj = json.loads(buffer)
 

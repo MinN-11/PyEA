@@ -56,7 +56,7 @@ def parse_ranks(ranks):
 
 def parse_class(path, filename):
     free_space = pyEA.STREAM
-    with open(f"{path}/{filename}.class", "r") as file:
+    with open(f"{path}/{filename}.class.json", "r") as file:
         buffer = file.read()
         obj = json.loads(buffer)
 
