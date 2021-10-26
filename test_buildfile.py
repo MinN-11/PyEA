@@ -24,7 +24,10 @@ FreeSpace2Stream = NpStream(pyEA.BUFFER, FreeSpace2, FreeSpace2Length)
 EndSpaceStream = NpStream(pyEA.BUFFER, EndSpace, EndSpaceLength)
 
 # should be called after tempering with fonts
+pyEA.textengine.load_font("PixelOperator.ttf")
 pyEA.textengine.populate()
+output("HackRom.gba")
+quit()
 
 offset(FreeSpace2Stream)
 
@@ -32,7 +35,6 @@ import pyEA.items, pyEA.classes, pyEA.units
 pyEA.items.repoint_item_tables()
 pyEA.units.repoint_unit_tables()
 pyEA.classes.repoint_class_tables()
-
 
 
 item_name = 56

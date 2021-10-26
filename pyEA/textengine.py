@@ -4,7 +4,10 @@ import pyEA
 import math
 from typing import *
 from varname import varname
+from PIL import ImageFont
 import pyEA.globals
+from pyEA import fontbuilder
+import numpy
 
 NO_NARROW = 0
 NARROW = 1
@@ -18,6 +21,7 @@ NARROW_MAPPING: Dict[str, str] = {}
 NL = "\x01"
 
 text_builder = []
+glyph_set = [i for i in range(0x20, 0x7b)]
 
 
 def asciify(string: str):
@@ -28,11 +32,96 @@ def asciify(string: str):
     return string
 
 
+def load_font(file):
+    with pyEA.offset(MenuGlyphTable):
+        pyEA.table("menu_glyphs", pyEA.PTR, 256)
+    with pyEA.offset(SerifGlyphTable):
+        pyEA.table("serif_glyphs", pyEA.PTR, 256)
+    font = ImageFont.truetype(file, 16)
+    for i in glyph_set:
+        with pyEA.row("serif_glyphs", i):
+            with pyEA.offset(pyEA.peek(pyEA.PTR)):
+                pyEA.write_word(0)
+                pyEA.write_byte(0)
+                glyph = fontbuilder.draw(font, chr(i))
+                glyph = fontbuilder.narrowify(glyph) * 3
+                buffer = fontbuilder.serif_font(glyph)
+                font_size = fontbuilder.glyph_size(buffer) + 1 if chr(i) != ' ' else 2
+                buffer = buffer.flatten()
+                arr = buffer[::4] + (buffer[1::4] << 2) + (buffer[2::4] << 4) + (buffer[3::4] << 6)
+                pyEA.write_byte(font_size)
+                pyEA.write_short(0)
+                pyEA.write(arr)
+        with pyEA.row("menu_glyphs", i):
+            with pyEA.offset(pyEA.peek(pyEA.PTR)):
+                pyEA.write_word(0)
+                pyEA.write_byte(0)
+                glyph = fontbuilder.draw(font, chr(i))
+                glyph = fontbuilder.narrowify(glyph) * 3
+                buffer = fontbuilder.menu_font(glyph)
+                font_size = fontbuilder.glyph_size(buffer) if chr(i) != ' ' else 2
+                buffer = buffer.flatten()
+                arr = buffer[::4] + (buffer[1::4] << 2) + (buffer[2::4] << 4) + (buffer[3::4] << 6)
+                pyEA.write_byte(font_size)
+                pyEA.write_short(0)
+                pyEA.write(arr)
+
+
+def build_narrowfont():
+    for i in glyph_set:
+        with pyEA.row("serif_glyphs", i):
+            with pyEA.offset(pyEA.peek(pyEA.PTR)):
+                pyEA.advance(8)
+                arr = numpy.frombuffer(pyEA.peek_bytes(64), dtype="<u1")
+                base = numpy.zeros(16 * 16, dtype="<u1")
+                base[::4] = arr & 0x3
+                base[1::4] = (arr >> 2) & 0x3
+                base[2::4] = (arr >> 4) & 0x3
+                base[3::4] = (arr >> 6) & 0x3
+
+                buffer = base.reshape((16, 16)).astype("<u1")
+                buffer = fontbuilder.serif_font(fontbuilder.narrowify(buffer == 3) * 3)
+                font_size = fontbuilder.glyph_size(buffer) + 1 if chr(i) != ' ' else 2
+                buffer = buffer.flatten()
+                arr = buffer[::4] + (buffer[1::4] << 2) + (buffer[2::4] << 4) + (buffer[3::4] << 6)
+
+                with pyEA.row("serif_glyphs", i):
+                    with pyEA.offset(pyEA.peek(pyEA.PTR)):
+                        pyEA.advance(5)
+                        pyEA.write_byte(font_size)
+                        pyEA.advance(2)
+                        pyEA.write(arr)
+
+        with pyEA.row("menu_glyphs", i):
+            with pyEA.offset(pyEA.peek(pyEA.PTR)):
+                pyEA.advance(8)
+                arr = numpy.frombuffer(pyEA.peek_bytes(64), dtype="<u1")
+                base = numpy.zeros(16 * 16, dtype="<u1")
+                base[::4] = arr & 0x3
+                base[1::4] = (arr >> 2) & 0x3
+                base[2::4] = (arr >> 4) & 0x3
+                base[3::4] = (arr >> 6) & 0x3
+
+                buffer = base.reshape((16, 16)).astype("<u1")
+                buffer = fontbuilder.menu_font(fontbuilder.narrowify((buffer == 1) | (buffer == 2)) * 3)
+                font_size = fontbuilder.glyph_size(buffer) if chr(i) != ' ' else 2
+                buffer = buffer.flatten()
+                arr = buffer[::4] + (buffer[1::4] << 2) + (buffer[2::4] << 4) + (buffer[3::4] << 6)
+
+                with pyEA.row("menu_glyphs", i):
+                    with pyEA.offset(pyEA.peek(pyEA.PTR)):
+                        pyEA.advance(5)
+                        pyEA.write_byte(font_size)
+                        pyEA.advance(2)
+                        pyEA.write(arr)
+
+
 def populate():
     with pyEA.offset(MenuGlyphTable):
         pyEA.table("menu_glyphs", pyEA.PTR, 256)
     with pyEA.offset(SerifGlyphTable):
         pyEA.table("serif_glyphs", pyEA.PTR, 256)
+    build_narrowfont()
     for i in range(255):
         for table, name in (MENU_GLYPHS, "menu_glyphs"), (SERIF_GLYPHS, "serif_glyphs"):
             with pyEA.row(name, i):
@@ -141,4 +230,3 @@ def text_entry(string: str, row: int = -1):
     with pyEA.row("TextTable", row):
         pyEA.write_ptr(f"_text_entry_{len(text_builder)}")
         text_builder.append(string)
-

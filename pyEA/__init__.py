@@ -82,7 +82,7 @@ def output(target_file: str):
     with open(target_file, "wb") as file:
         file.write(BUFFER[:DATA_MAX].tobytes())
         print("Making UPS patch...")
-        ups.make_ups(SOURCE_NAME, target_file, target_file[:target_file.index(".")] + ".ups")
+        #ups.make_ups(SOURCE_NAME, target_file, target_file[:target_file.index(".")] + ".ups")
         print("Done!")
 
 
@@ -230,6 +230,10 @@ def memcpy(src, tar, size):
     BUFFER[tar: tar + size] = BUFFER[src: src + size]
 
 
+def peek_bytes(size):
+    return STREAM.peek(size)
+
+
 def peek(data_type: str) -> int:
     if data_type == PTR:
         value = STREAM.peek(4)
@@ -345,11 +349,6 @@ def row(table_name: str, row_number: int = -1, data_type: str = ""):
     if row_number >= max_rows:
         print(f"Warning: Writing to row {row_number} on table {table_name} at {hex(position)} with {max_rows} rows.")
     return offset(position + row_len * row_number)
-
-
-def write_row(data_type: str, table_name: str, row_number: int = -1):
-    """write the row number to current offset and set offset to row"""
-    return row(table_name, row_number, data_type)
 
 
 import pyEA.assets as assets

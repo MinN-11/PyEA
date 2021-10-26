@@ -1,7 +1,6 @@
 
 from typing import *
 import pyEA.asm
-from pyEA.tables import *
 import pyEA.items
 import pyEA.units
 import pyEA.classes
@@ -14,6 +13,5 @@ ASSET_TYPES: Dict[str, Union[None, Callable[[str, str], bytes]]] = {
     ".class": pyEA.classes.parse_class,
     ".unit": pyEA.units.parse_unit,
     ".item": pyEA.items.parse_item,
-    ".chapter": chapter_compiler,
 }
 

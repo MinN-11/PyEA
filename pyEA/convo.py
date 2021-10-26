@@ -5,6 +5,7 @@ from FE8.text_codes import *
 from typing import *
 import numpy
 
+
 def auto_a(string: str):
     data = ""
     splits = string.split(NL)
