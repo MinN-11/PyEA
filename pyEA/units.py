@@ -1,7 +1,7 @@
 import json
 import pyEA.portrait as portrait
 import pyEA
-import pyEA.textengine as text
+import pyEA.text as text
 import os
 
 
@@ -13,6 +13,9 @@ def repoint_unit_tables():
     pyEA.table("MagCharTable", 2, 256, 1)
     pyEA.table("PersonalSkillTable", 1, 256, 1)
     pyEA.table("CharLevelUpSkillTable", 4, 256, 1)
+    pyEA.table("EscapeQuoteTable", 2, 256, 1)
+    pyEA.table("BattleQuoteTable", 16, 256, 1)
+    pyEA.table("DeathQuoteTable", 12, 256, 1)
 
 
 def parse_stats(stats, stat_names):
@@ -67,7 +70,7 @@ def parse_unit(path, filename):
         parse_ranks(obj.get("ranks"))
         mag_growth = parse_stats(obj.get("growths"), ("hp", "str", "skl", "spe", "def", "res", "luck"))
         pyEA.write_byte(0, 0, 0, 0, 0)
-        pyEA.write_word(pyEA.bitfield(obj.get("abilities", ())))
+        pyEA.write_word(pyEA.bitfield(obj.get("abilities", ()), "Unit"))
         pyEA.write_ptr(0)
         pyEA.write_byte(obj.get("convo_group", 0))
         pyEA.write_byte(0, 0, 0)

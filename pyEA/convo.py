@@ -1,9 +1,6 @@
-
-import pyEA
-import pyEA.textengine as text
-from FE8.text_codes import *
+import pyEA.text as text
+from pyEA.FE8.text_codes import *
 from typing import *
-import numpy
 
 
 def auto_a(string: str):

@@ -2,7 +2,7 @@ import json
 import pyEA.icon as icon
 from typing import *
 import pyEA
-import pyEA.textengine as text
+import pyEA.text as text
 import os
 from pyEA import mapsprite
 from pyEA import portrait
@@ -29,6 +29,8 @@ def repoint_class_tables():
     pyEA.table("MagClassTable", 2, 256, 1)
     pyEA.table("ClassSkillTable", 1, 256, 1)
     pyEA.table("ClassLevelUpSkillTable", 4, 256, 0)
+    pyEA.table("ClassLevelCapTable", 1, 256)
+    pyEA.table("WalkingSoundTable", 1, 256)
 
 
 def parse_stats(stats, stat_names):
@@ -104,7 +106,7 @@ def parse_class(path, filename):
         pyEA.write_ptr(obj.get("terrain_avoid", 0x80C479))
         pyEA.write_ptr(obj.get("terrain_defense", 0x80C4BA))
         pyEA.write_ptr(obj.get("terrain_resistance", 0x80C4FB))
-        pyEA.write_word(pyEA.bitfield(obj.get("class_type", ())))
+        pyEA.write_word(pyEA.bitfield(obj.get("class_type", ()), "Unit"))
 
         with pyEA.row("MagClassTable", class_id):
             pyEA.write_byte(mag, mag_growth, mag_caps, mag_promo)

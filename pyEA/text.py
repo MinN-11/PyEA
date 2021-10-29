@@ -1,5 +1,5 @@
 
-from FE8.definitions import SerifGlyphTable, MenuGlyphTable
+from pyEA.FE8.offsets import SerifGlyphTable, MenuGlyphTable
 import pyEA
 import math
 from typing import *
@@ -31,6 +31,7 @@ def __init_glyph_tables():
     if "SerifGlyphs" not in pyEA.TABLES:
         with pyEA.offset(SerifGlyphTable):
             pyEA.table("SerifGlyphs", pyEA.PTR, 256)
+
 
 def asciify(string: str):
     string = string.replace('\u2018', "'")
@@ -119,6 +120,11 @@ def build_narrowfont():
                         pyEA.write_byte(font_size)
                         pyEA.advance(2)
                         pyEA.write(arr)
+
+
+def repoint_text_table():
+    pyEA.table("TextTable", pyEA.PTR, 0x1000, 0xD48, 0xE8414.to_bytes(4, "little"))
+    pyEA.repoint("TextTable", 0xD48, (0xA26C, 0xA2A0))
 
 
 def populate():
@@ -222,6 +228,7 @@ def dump_text():
     for i, v in enumerate(text_builder):
         pyEA.text_label(f"_text_entry_{i}")
         pyEA.write_string(v)
+    print(f"Text finished at {hex(pyEA.current_row('TextTable'))}!")
 
 
 # the "comply with event assembler" feature, will be deprecated in the final release

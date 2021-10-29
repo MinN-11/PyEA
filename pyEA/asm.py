@@ -5,7 +5,7 @@ import zlib
 import pathlib
 import subprocess
 
-CLIB_PATH = str(pathlib.Path(__file__).parent.resolve()) + "/../fe-clib/"
+CLIB_PATH = str(pathlib.Path(__file__).parent.resolve()) + "/FE_CLib/"
 
 
 def asm_compiler(address, file_name, s=False) -> bytes:

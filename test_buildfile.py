@@ -1,7 +1,9 @@
 from pyEA import *
-from FE8.definitions import *
-import pyEA.textengine
+from pyEA.FE8.offsets import *
+import pyEA.text
 from pyEA.convo import Convo
+import pyEA.items, pyEA.classes, pyEA.units
+
 
 load_source("FE8_clean.gba")
 
@@ -24,11 +26,11 @@ FreeSpace2Stream = NpStream(pyEA.BUFFER, FreeSpace2, FreeSpace2Length)
 EndSpaceStream = NpStream(pyEA.BUFFER, EndSpace, EndSpaceLength)
 
 # should be called after tempering with fonts
-pyEA.textengine.populate()
+pyEA.text.populate()
 
 offset(FreeSpace2Stream)
 
-import pyEA.items, pyEA.classes, pyEA.units
+text.repoint_text_table()
 pyEA.items.repoint_item_tables()
 pyEA.units.repoint_unit_tables()
 pyEA.classes.repoint_class_tables()
@@ -38,18 +40,16 @@ item_name = 56
 item_desc = 160
 chara_name = 46
 
-table("TextTable", PTR, 0x1000, 0xD48, 0xE8414.to_bytes(4, "little"))
-repoint("TextTable", 0xD48, (0xA26C, 0xA2A0))
 
-textengine.write_flex("Silver Rapier", menu=True, width=56, row=0x40C)
+text.write_flex("Silver Rapier", menu=True, width=56, row=0x40C)
 
 Eirika = 1
 Ephraim = 2
 
-from FE8.text_codes import *
+from pyEA.FE8.text_codes import *
 
-print(pyEA.textengine.measure_string("You will be the first to die!"))
-print(pyEA.textengine.flex("You will be the first to die!", height=3, width=60).replace(NL, "[N]\n"))
+print(pyEA.text.measure_string("You will be the first to die!"))
+print(pyEA.text.flex("You will be the first to die!", height=3, width=60).replace(NL, "[N]\n"))
 
 c = Convo()
 
@@ -67,17 +67,8 @@ c.build_dialogue(f"I moved to the left!")
 
 c.write()
 
-load("ReaverSplit.s")
-load("AuraSkillCheck.c")
-load("ItemTemplate.item.json")
-load("UnitTemplate.unit.json")
-load("ClassTemplate.class.json")
-
-import pyEA.animations
-pyEA.animations.load_animations("cleric", "AA/")
-
 # should be called after ALL text have been added
-textengine.dump_text()
+text.dump_text()
 output("HackRom.gba")
 
 

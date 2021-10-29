@@ -5,7 +5,7 @@ import math
 import os
 from pyEA.npstream import NpStream, StreamRevert
 import pyEA.npstream
-from pyEA import textengine
+from pyEA import text
 import pyEA.globals as g
 import numpy
 from pyEA import ups
@@ -162,9 +162,10 @@ def fetch(name: Union[str, int]):
         return 0
 
 
-def bitfield(items: Union[str, int, Collection[Union[str, int]]]):
+def bitfield(items: Union[str, int, Collection[Union[str, int]]], prefix: str = ''):
     if isinstance(items, str) or isinstance(items, int):
         items = [items]
+    items = [prefix + i if isinstance(i, str) else i for i in items]
     v = 0
     for i in items:
         v |= fetch(i)
@@ -350,6 +351,7 @@ def row(table_name: str, row_number: int = -1, data_type: str = ""):
         write(row_number, data_type)
     if row_number >= max_rows:
         print(f"Warning: Writing to row {row_number} on table {table_name} at {hex(position)} with {max_rows} rows.")
+    TABLE_USAGE[table_name].add(row_number)
     return offset(position + row_len * row_number)
 
 
@@ -373,6 +375,16 @@ def load(file_name: str):
                 STREAM.write(buffer)
             return
     print(f"Warning: Unknown file extension in {file}.")
+
+
+def load_folder(folder):
+    full = os.path.dirname(inspect.stack()[1].filename)
+    full = os.path.join(full, folder)
+    for root, dirs, files in os.walk(full):
+        for file in files:
+            for ext in assets.ASSET_TYPES:
+                if file.endswith(ext):
+                    load(os.path.join(root, file))
 
 
 def expose(file_name, expose_globals=False):
